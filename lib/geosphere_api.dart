@@ -9,6 +9,7 @@ import 'models.dart';
 /// Kein API-Key nötig.
 class GeoSphereApi {
   static const _base = 'https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min';
+  static const _history = 'https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min';
   static const parameters = ['TL', 'RF', 'FF', 'RR', 'SO'];
 
   final http.Client _http;
@@ -38,24 +39,43 @@ class GeoSphereApi {
         .toList();
   }
 
-  /// Aktuelle Werte (letzte 10 Minuten) für viele Stationen in EINEM Request.
-  Future<({DateTime? time, Map<String, Measurement> values})> current(List<Station> stations) async {
-    final uri = Uri.parse(_base).replace(queryParameters: {
-      'parameters': parameters.join(','),
-      'station_ids': stations.map((s) => s.id).join(','),
-    });
-    return parseCurrent(await _get(uri));
+  /// Aktuelle Werte für viele Stationen in EINEM Request.
+  /// Wir laden die letzte Stunde: Der neueste 10-Minuten-Wert ist oft noch leer (null).
+  /// Dann nehmen wir den letzten Wert, der da ist. Wenn das nicht geht, nehmen wir "current".
+  Future<({DateTime? time, Map<String, Measurement> values})> current(List<Station> stations, {DateTime? now}) async {
+    final ids = stations.map((s) => s.id).join(',');
+    final end = (now ?? DateTime.now()).toUtc();
+    String iso(DateTime d) => d.toIso8601String().substring(0, 16);
+    try {
+      final uri = Uri.parse(_history).replace(queryParameters: {
+        'parameters': parameters.join(','),
+        'station_ids': ids,
+        'start': iso(end.subtract(const Duration(hours: 1))),
+        'end': iso(end),
+      });
+      return parseCurrent(await _get(uri));
+    } catch (_) {
+      final uri = Uri.parse(_base).replace(queryParameters: {'parameters': parameters.join(','), 'station_ids': ids});
+      return parseCurrent(await _get(uri));
+    }
   }
 
   static ({DateTime? time, Map<String, Measurement> values}) parseCurrent(Map<String, dynamic> json) {
-    final times = (json['timestamps'] as List<dynamic>? ?? []);
-    final time = times.isEmpty ? null : DateTime.tryParse(times.last as String)?.toLocal();
+    final times = (json['timestamps'] as List<dynamic>? ?? []).cast<String>();
+    var newest = -1; // Index der neuesten Zeit mit einer Temperatur
 
-    // Hilfsfunktion: den letzten Wert eines Parameters lesen.
+    // Hilfsfunktion: den letzten Wert, der NICHT null ist.
     double? last(Map<String, dynamic> params, String key) {
       final data = (params[key] as Map<String, dynamic>?)?['data'] as List<dynamic>?;
-      if (data == null || data.isEmpty || data.last == null) return null;
-      return (data.last as num).toDouble();
+      if (data == null) return null;
+      for (var i = data.length - 1; i >= 0; i--) {
+        final v = data.elementAt(i);
+        if (v != null) {
+          if (key == 'TL' && i > newest) newest = i;
+          return (v as num).toDouble();
+        }
+      }
+      return null;
     }
 
     final values = <String, Measurement>{};
@@ -70,6 +90,8 @@ class GeoSphereApi {
         sunshine10min: last(p, 'SO'),
       );
     }
+    final idx = newest >= 0 ? newest : times.length - 1;
+    final time = idx < 0 || idx >= times.length ? null : DateTime.tryParse(times.elementAt(idx))?.toLocal();
     return (time: time, values: values);
   }
 }

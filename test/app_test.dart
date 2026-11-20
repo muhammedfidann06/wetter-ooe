@@ -52,6 +52,26 @@ void main() {
     expect(r.time, isNotNull);
   });
 
+  test('Neuester Wert leer (null) -> der letzte vorhandene Wert wird genommen', () {
+    final r = GeoSphereApi.parseCurrent({
+      'timestamps': ['2026-11-20T22:30+00:00', '2026-11-20T22:40+00:00', '2026-11-20T22:50+00:00'],
+      'features': [
+        {
+          'properties': {
+            'station': '11057',
+            'parameters': {
+              'TL': {'data': [7.7, 7.4, null]},
+              'RR': {'data': [0.0, null, null]},
+            },
+          },
+        },
+      ],
+    });
+    expect(r.values['11057']!.temperature, 7.4);
+    expect(r.values['11057']!.rain10min, 0.0);
+    expect(r.time, DateTime.parse('2026-11-20T22:40+00:00').toLocal());
+  });
+
   test('Haversine: Linz-Stadt ist ca. 19 km von Hagenberg entfernt', () {
     final d = distanceKm(hagenbergLat, hagenbergLon, 48.2964, 14.2856);
     expect(d, inInclusiveRange(17, 21));
