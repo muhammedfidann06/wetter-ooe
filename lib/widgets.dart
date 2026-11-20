@@ -9,6 +9,43 @@ String fmt(double? v, String unit, {int digits = 1}) =>
 String fmtTime(DateTime? t) =>
     t == null ? '' : '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')} Uhr';
 
+// Material-Icons statt Emojis: Emojis fehlen im Flutter-Web-Font.
+class WeatherIcon extends StatelessWidget {
+  final WeatherKind kind;
+  final double size;
+  const WeatherIcon(this.kind, {super.key, this.size = 28});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = switch (kind) {
+      WeatherKind.rain => (Icons.water_drop, Colors.lightBlue),
+      WeatherKind.sunny => (Icons.wb_sunny, Colors.amber),
+      WeatherKind.partlySunny => (Icons.wb_cloudy, Colors.orangeAccent),
+      WeatherKind.frost => (Icons.ac_unit, Colors.cyan),
+      WeatherKind.cloudy => (Icons.cloud, Colors.blueGrey),
+    };
+    return Icon(icon, size: size, color: color);
+  }
+}
+
+// Kleine Überschrift mit Icon.
+class IconLabel extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color? color;
+  const IconLabel(this.icon, this.text, {super.key, this.color});
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Flexible(child: Text(text, style: Theme.of(context).textTheme.labelLarge)),
+        ],
+      );
+}
+
 // Große Karte: die Station am nächsten zur FH Hagenberg.
 class HighlightCard extends StatelessWidget {
   final StationWeather weather;
@@ -26,7 +63,7 @@ class HighlightCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('📍 Nächste Station zur FH Hagenberg', style: Theme.of(context).textTheme.labelLarge),
+            const IconLabel(Icons.school, 'Nächste Station zur FH Hagenberg'),
             const SizedBox(height: 4),
             Text(
               '${weather.station.name} · ${weather.distanceKm.toStringAsFixed(1).replaceAll('.', ',')} km',
@@ -35,7 +72,7 @@ class HighlightCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text(m.icon, style: const TextStyle(fontSize: 48)),
+                WeatherIcon(m.kind, size: 48),
                 const SizedBox(width: 16),
                 Text(fmt(m.temperature, '°C'), style: Theme.of(context).textTheme.displaySmall),
               ],
@@ -79,14 +116,14 @@ class ExtremesRow extends StatelessWidget {
   final StationWeather coldest;
   const ExtremesRow({super.key, required this.warmest, required this.coldest});
 
-  Widget _card(BuildContext context, String label, StationWeather w, Color color) => Expanded(
+  Widget _card(BuildContext context, IconData icon, String label, StationWeather w, Color color) => Expanded(
         child: Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: Theme.of(context).textTheme.labelMedium),
+                IconLabel(icon, label, color: color),
                 Text(fmt(w.measurement.temperature, '°C'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(color: color)),
                 Text(w.station.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -98,8 +135,8 @@ class ExtremesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(children: [
-        _card(context, '🔥 Am wärmsten', warmest, Colors.deepOrange),
-        _card(context, '🧊 Am kältesten', coldest, Colors.blue),
+        _card(context, Icons.local_fire_department, 'Am wärmsten', warmest, Colors.deepOrange),
+        _card(context, Icons.ac_unit, 'Am kältesten', coldest, Colors.blue),
       ]);
 }
 
@@ -114,7 +151,7 @@ class StationTile extends StatelessWidget {
     final s = weather.station;
     return Card(
       child: ListTile(
-        leading: Text(m.icon, style: const TextStyle(fontSize: 28)),
+        leading: WeatherIcon(m.kind),
         title: Text(s.name),
         subtitle: Text('${s.altitude} m · ${weather.distanceKm.round()} km von Hagenberg'),
         trailing: Text(fmt(m.temperature, '°C'), style: Theme.of(context).textTheme.titleMedium),
@@ -152,7 +189,11 @@ class StationDetails extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${m.icon}  ${s.name}', style: Theme.of(context).textTheme.headlineSmall),
+            Row(children: [
+              WeatherIcon(m.kind, size: 32),
+              const SizedBox(width: 12),
+              Expanded(child: Text(s.name, style: Theme.of(context).textTheme.headlineSmall)),
+            ]),
             const SizedBox(height: 8),
             for (final (icon, label, value) in rows)
               ListTile(dense: true, leading: Icon(icon), title: Text(label), trailing: Text(value)),

@@ -32,15 +32,17 @@ class Measurement {
   // Wind in km/h ist für Menschen leichter zu lesen.
   double? get windKmh => wind == null ? null : wind! * 3.6;
 
-  // Ein einfaches Symbol für die Liste.
-  String get icon {
-    if ((rain10min ?? 0) > 0) return '🌧️';
-    if ((sunshine10min ?? 0) >= 300) return '☀️';
-    if ((sunshine10min ?? 0) > 0) return '⛅';
-    if ((temperature ?? 99) <= 0) return '❄️';
-    return '☁️';
+  // Eine einfache Wetter-Art für das Symbol in der Liste.
+  WeatherKind get kind {
+    if ((rain10min ?? 0) > 0) return WeatherKind.rain;
+    if ((sunshine10min ?? 0) >= 300) return WeatherKind.sunny;
+    if ((sunshine10min ?? 0) > 0) return WeatherKind.partlySunny;
+    if ((temperature ?? 99) <= 0) return WeatherKind.frost;
+    return WeatherKind.cloudy;
   }
 }
+
+enum WeatherKind { rain, sunny, partlySunny, frost, cloudy }
 
 class StationWeather {
   final Station station;

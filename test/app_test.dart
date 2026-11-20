@@ -48,7 +48,7 @@ void main() {
     final r = GeoSphereApi.parseCurrent(_current);
     expect(r.values['11060']!.temperature, 8.9);
     expect(r.values['11068']!.temperature, isNull);
-    expect(r.values['11068']!.icon, '🌧️');
+    expect(r.values['11068']!.kind, WeatherKind.rain);
     expect(r.time, isNotNull);
   });
 
@@ -82,7 +82,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: HomePage(api: GeoSphereApi(client: client))));
     await tester.pumpAndSettle();
 
-    expect(find.text('📍 Nächste Station zur FH Hagenberg'), findsOneWidget);
+    expect(find.text('Nächste Station zur FH Hagenberg'), findsOneWidget);
     // Freistadt ist näher an Hagenberg als Linz.
     expect(find.textContaining('Freistadt ·'), findsOneWidget);
     // Linz hat als einzige Station eine Temperatur -> wärmste UND kälteste.
