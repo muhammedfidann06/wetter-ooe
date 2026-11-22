@@ -42,3 +42,8 @@ Source: [GeoSphere Austria Data Hub](https://data.hub.geosphere.at/) – dataset
 
 ## Skills
 Flutter · Dart · REST APIs · open government data · geospatial math · testing · CI/CD · GitHub Pages
+
+## How this was built
+This project was created with the help of an AI coding assistant (Claude). I'm learning to program and use it to understand
+how the code works – the tests and the CI pipeline show that it runs correctly.
+*Dieses Projekt ist mit Hilfe eines KI-Assistenten entstanden; ich nutze es, um Programmieren zu lernen.*
